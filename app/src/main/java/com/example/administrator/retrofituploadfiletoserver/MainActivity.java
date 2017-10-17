@@ -23,6 +23,7 @@ import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -34,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     ImageView imghinh;
     Button btnsenddata;
     String path = "";
+    Uri uri = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,14 +55,15 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 OkHttpClient.Builder okhttp = new OkHttpClient.Builder();
                 Retrofit.Builder builder = new Retrofit.Builder().
-                        baseUrl("http://192.168.2.66/Upload/")
+                        baseUrl("http://192.168.1.181/Upload/")
                         .addConverterFactory(GsonConverterFactory.create());
                 Retrofit retrofit = builder.client(okhttp.build()).build();
                 UploadClient uploadClient = retrofit.create(UploadClient.class);
+
                 File file = new File(path);
                 String file_path = file.getAbsolutePath();
+                RequestBody requestBody = RequestBody.create(MediaType.parse(getContentResolver().getType(uri)),file);
 
-                RequestBody requestBody = RequestBody.create(MediaType.parse("multipart/form-data"),file);
 
                 MultipartBody.Part body =
                         MultipartBody.Part.createFormData("uploaded_file", file_path.substring(file_path.lastIndexOf("/") + 1), requestBody);
@@ -68,22 +71,26 @@ public class MainActivity extends AppCompatActivity {
                 call.enqueue(new Callback<Message>() {
                     @Override
                     public void onResponse(Call<Message> call, Response<Message> response) {
-                        Message message = response.body();
-                        Log.d("BBB",response.message().toString());
-                        if (message.getMessage().equals("Success")) {
-                            Toast.makeText(MainActivity.this, "Thanh Công", Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(MainActivity.this, "Thất bại", Toast.LENGTH_SHORT).show();
+                        if (response!= null){
+                            Message message = response.body();
+                            if (message!= null){
+                                if (message.getMessage().equals("Success")) {
+                                    Toast.makeText(MainActivity.this, "Thanh cong", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(MainActivity.this, "That bai", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        }else {
+                            Toast.makeText(MainActivity.this, "Null", Toast.LENGTH_SHORT).show();
                         }
+
                     }
 
                     @Override
-                        public void onFailure(Call<Message> call, Throwable t) {
-                        Log.d("BBB",t.getMessage().toString());
-                        }
+                    public void onFailure(Call<Message> call, Throwable t) {
+
+                    }
                 });
-
-
             }
         });
     }
@@ -91,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == 123 && resultCode == RESULT_OK && data != null) {
-            Uri uri = data.getData();
+             uri = data.getData();
             path = getRealPathFromURI(uri);
             try {
                 InputStream inputStream = getContentResolver().openInputStream(uri);
@@ -114,6 +121,6 @@ public class MainActivity extends AppCompatActivity {
     }
     public String getType(String path){
         String extension = MimeTypeMap.getFileExtensionFromUrl(path);
-        return MimeTypeMap.getSingleton().getExtensionFromMimeType(extension);
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
     }
 }
